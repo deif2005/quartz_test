@@ -58,8 +58,15 @@ public class SchedulerUtil {
      * @param seconds
      * @throws Exception
      */
-    public void executeJobWithRepeatForever(Integer hours, Integer minutes, Integer seconds)
+    public void executeJobWithRepeatForever(int hours, int minutes, int seconds)
             throws Exception{
+        SimpleScheduleBuilder simpleScheduleBuilder = SimpleScheduleBuilder.simpleSchedule();
+        if (hours > 0)
+            simpleScheduleBuilder.withIntervalInHours(hours);
+        if (minutes > 0)
+            simpleScheduleBuilder.withIntervalInMinutes(minutes);
+        if (seconds >0)
+            simpleScheduleBuilder.withIntervalInSeconds(seconds);
 
         setHours(hours);
         setMinutes(minutes);
@@ -68,11 +75,7 @@ public class SchedulerUtil {
         JobDetail job = JobBuilder.newJob(jobClass).usingJobData(jobDataMap).build();
         Trigger trigger = TriggerBuilder
                 .newTrigger()
-                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                .withIntervalInHours(hours)
-                .withIntervalInMinutes(minutes)
-                .withIntervalInSeconds(seconds)
-                .repeatForever())
+                .withSchedule(simpleScheduleBuilder.repeatForever())
                 .startNow()
                 .build();
 

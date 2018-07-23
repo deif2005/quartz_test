@@ -1,8 +1,12 @@
 package com.quartz;
 
 import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Calendar;
+import java.util.Date;
 
 import static org.quartz.JobBuilder.newJob;
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
@@ -24,13 +28,46 @@ public class QuartzTest {
 
     public static void test(){
         SchedulerUtil schedulerUtil = new SchedulerUtil();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.add(Calendar.SECOND,10);
+        Date date = calendar.getTime();
         try {
             JobDataMap jobDataMap = new JobDataMap();
             schedulerUtil.setJobDataMap(jobDataMap);
             schedulerUtil.setJobClass(TestJob.class);
-            schedulerUtil.executeJobWithRepeatForever(0,1,0);
+            System.out.println(date);
+            schedulerUtil.executeJobWithSimpleTrigger(date);
         }catch (Exception e){
             logger.error("任务调度异常",e);
+        }
+    }
+
+    public static void test1(){
+        SchedulerUtil schedulerUtil = new SchedulerUtil();
+        try {
+            JobDataMap jobDataMap = new JobDataMap();
+            schedulerUtil.setJobDataMap(jobDataMap);
+            schedulerUtil.setJobClass(TestJob.class);
+            schedulerUtil.executeJobWithRepeatForever(0,0,2);
+        }catch (Exception e){
+            logger.error("任务调度异常",e);
+        }
+    }
+
+    public static void removeJob(String jobName, String jobGroupName,
+                                 String triggerName, String triggerGroupName) {
+        try {
+            SchedulerFactory gSchedulerFactory = new StdSchedulerFactory();
+            Scheduler sched = gSchedulerFactory.getScheduler();
+            TriggerKey triggerKey = new TriggerKey(triggerName, triggerGroupName);
+            JobKey jobKey = new JobKey(jobName, jobGroupName);
+            sched.pauseTrigger(triggerKey);// 停止触发器
+            sched.unscheduleJob(triggerKey);// 移除触发器
+            sched.interrupt(jobKey);
+            sched.deleteJob(jobKey);// 删除任务
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -7,6 +7,7 @@ import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -18,6 +19,7 @@ public class TestJob implements Job{
 
     @Override
     public void execute(JobExecutionContext arg) throws JobExecutionException {
-        System.out.println(new Date());
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        System.out.println(format.format(new Date()));
     }
 }

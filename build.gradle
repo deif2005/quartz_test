@@ -13,4 +13,5 @@ repositories {
 
 dependencies {
     compile group: 'org.quartz-scheduler', name: 'quartz', version: '2.3.0'
+    compile group: 'com.usi.share', name: 'share-common', version: '1.0.6'
 }
