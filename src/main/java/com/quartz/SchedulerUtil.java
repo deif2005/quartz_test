@@ -181,9 +181,8 @@ public class SchedulerUtil {
         try {
             JobDetail job = getJobDetail();
             Trigger trigger = getTrigger();
-
-            scheduler.start();
             scheduler.scheduleJob(job, trigger);
+            scheduler.start();
         }catch (SchedulerException e){
             e.printStackTrace();
         }
