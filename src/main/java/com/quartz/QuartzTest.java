@@ -43,15 +43,42 @@ public class QuartzTest {
         }
     }
 
-    public static void test1(){
+    public static void simpleTest(){
         SchedulerUtil schedulerUtil = new SchedulerUtil();
         try {
-            JobDataMap jobDataMap = new JobDataMap();
-            schedulerUtil.setJobDataMap(jobDataMap);
             schedulerUtil.setJobClass(TestJob.class);
             schedulerUtil.executeJobWithRepeatForever(0,0,2);
         }catch (Exception e){
             logger.error("任务调度异常",e);
+        }
+    }
+
+    public static void useJobNameStopTest(){
+        SchedulerUtil schedulerUtil = new SchedulerUtil();
+        try {
+            schedulerUtil.setJobClass(TestJob.class);
+            schedulerUtil.setSeconds(2);
+            schedulerUtil.executeJobWithSimpleTriggerByName("jobName1","jobGroupName1");
+            Scheduler scheduler = schedulerUtil.getScheduler();
+            JobKey jobKey = new JobKey("jobName1", "jobGroupName1");
+            scheduler.interrupt(jobKey);
+            scheduler.deleteJob(jobKey);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public static void useTriggerNameStopTest(){
+        SchedulerUtil schedulerUtil = new SchedulerUtil();
+        try {
+            schedulerUtil.setJobClass(TestJob.class);
+            schedulerUtil.executeJobWithCronTriggerByName("triggerName1","triggerGroupName1","0/2 * * * * ? *");
+            Scheduler scheduler = schedulerUtil.getScheduler();
+            TriggerKey triggerKey = new TriggerKey("triggerName1", "triggerGroupName1");
+            scheduler.pauseTrigger(triggerKey);// 停止触发器
+            scheduler.unscheduleJob(triggerKey);// 移除触发器
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
 
@@ -72,6 +99,8 @@ public class QuartzTest {
     }
 
     public static void main(String[] args) {
-        test();
+//        useJobNameStopTest();
+        useTriggerNameStopTest();
     }
+
 }
