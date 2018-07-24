@@ -14,9 +14,11 @@ public class SchedulerUtil {
 
     private String jobName;
 
-    private String groupName;
+    private String jobGroupName;
 
     private String triggerName;
+
+    private String triggerGroupName;
 
     private Integer hours;
 
@@ -29,26 +31,37 @@ public class SchedulerUtil {
     //任务开始时间
     private Date startDatetime;
 
+    private boolean isStartNow=false;
+
     private String cronExpression;
 
     private JobDataMap jobDataMap;
+
+    private boolean isRepeatForever=false;
+
+    private Integer repeatCount=0;
+
+    private Scheduler scheduler;
 
     /**
      * 指定时间执行一次任务
      * @param startDatetime
      * @throws Exception
      */
-    public void executeJobWithSimpleTrigger(Date startDatetime) throws SchedulerException{
+    public void executeJobWithSimpleTrigger(Date startDatetime){
         setStartDatetime(startDatetime);
-        JobDetail job = JobBuilder.newJob(jobClass).usingJobData(jobDataMap).build();
-        Trigger trigger = TriggerBuilder
-                .newTrigger()
-                .startAt(startDatetime)
-                .build();
+        JobDetail job = getJobDetail();
+        Trigger trigger = getTrigger();
+        SchedulerExecutor(job,trigger);
 
-        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
-        scheduler.start();
-        scheduler.scheduleJob(job,trigger);
+//        JobDetail job = JobBuilder.newJob(jobClass).usingJobData(jobDataMap).build();
+//        Trigger trigger = TriggerBuilder
+//                .newTrigger()
+//                .startAt(startDatetime)
+//                .build();
+//        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
+//        scheduler.start();
+//        scheduler.scheduleJob(job,trigger);
     }
 
     /**
@@ -58,8 +71,101 @@ public class SchedulerUtil {
      * @param seconds
      * @throws Exception
      */
-    public void executeJobWithRepeatForever(int hours, int minutes, int seconds)
-            throws Exception{
+    public void executeJobWithRepeatForever(int hours, int minutes, int seconds) {
+        setHours(hours); setMinutes(minutes); setSeconds(seconds);
+        JobDetail job = getJobDetail();
+        Trigger trigger = getTrigger();
+        SchedulerExecutor(job,trigger);
+
+//        SimpleScheduleBuilder simpleScheduleBuilder = getSimpleScheduleBuilder();
+//        JobDetail job = JobBuilder.newJob(jobClass).usingJobData(jobDataMap).build();
+//        Trigger trigger = TriggerBuilder
+//                .newTrigger()
+//                .withSchedule(simpleScheduleBuilder)
+//                .startNow()
+//                .build();
+
+//        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
+//        scheduler.start();
+//        scheduler.scheduleJob(job,trigger);
+    }
+
+    /**
+     * 指定名称
+     * @param jobName
+     * @param jobGroupName
+     * @throws Exception
+     */
+    public void executeJobWithSimpleTriggerByName(String jobName,String jobGroupName){
+        setJobName(jobName); setJobGroupName(jobGroupName);
+        JobDetail job = getJobDetail();
+        Trigger trigger = getTrigger();
+        SchedulerExecutor(job,trigger);
+
+//        JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobName,groupName).build();
+//        Trigger trigger = TriggerBuilder
+//                .newTrigger()
+//                .withIdentity(triggerName, groupName)
+//                .startAt(startDatetime)
+//                .build();
+
+//        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
+//        scheduler.start();
+//        scheduler.scheduleJob(job,trigger);
+    }
+
+    /**
+     * 使用cron触发器执行
+     * @throws Exception
+     */
+    public void executeJobWithCronTrigger(){
+        JobDetail job = getJobDetail();
+        Trigger trigger = getTrigger();
+        SchedulerExecutor(job,trigger);
+
+//        JobDetail job = JobBuilder.newJob(jobClass).build();
+//        Trigger trigger = TriggerBuilder
+//                .newTrigger()
+//                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+//                .build();
+
+//        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
+//        scheduler.start();
+//        scheduler.scheduleJob(job, trigger);
+    }
+
+    /**
+     * 使用cron触发器 指定名称执行
+     * @param jobName
+     * @param jobGroupName
+     * @throws Exception
+     */
+    public void executeJobWithCronTriggerByName(String jobName, String jobGroupName, String cronExpression){
+
+        setJobName(jobName); setJobGroupName(jobGroupName); setCronExpression(cronExpression);
+        JobDetail job = getJobDetail();
+        Trigger trigger = getTrigger();
+        SchedulerExecutor(job,trigger);
+
+//        JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobName, groupName).build();
+//        Trigger trigger = TriggerBuilder
+//                .newTrigger()
+//                .withIdentity(triggerName, groupName)
+//                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+//                .build();
+
+//        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
+//        scheduler.start();
+//        scheduler.scheduleJob(job, trigger);
+    }
+
+    private ScheduleBuilder getScheduleBuilder(){
+        ScheduleBuilder scheduleBuilder = null;
+        if (cronExpression != null && !"".equals(cronExpression))
+            scheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression);
+        if (scheduleBuilder != null)
+            return scheduleBuilder;
+
         SimpleScheduleBuilder simpleScheduleBuilder = SimpleScheduleBuilder.simpleSchedule();
         if (hours > 0)
             simpleScheduleBuilder.withIntervalInHours(hours);
@@ -67,89 +173,80 @@ public class SchedulerUtil {
             simpleScheduleBuilder.withIntervalInMinutes(minutes);
         if (seconds >0)
             simpleScheduleBuilder.withIntervalInSeconds(seconds);
+        if (isRepeatForever)
+            simpleScheduleBuilder.repeatForever();
+        if (repeatCount > 0)
+            simpleScheduleBuilder.withRepeatCount(repeatCount);
+        return simpleScheduleBuilder;
 
-        setHours(hours);
-        setMinutes(minutes);
-        setSeconds(seconds);
-
-        JobDetail job = JobBuilder.newJob(jobClass).usingJobData(jobDataMap).build();
-        Trigger trigger = TriggerBuilder
-                .newTrigger()
-                .withSchedule(simpleScheduleBuilder.repeatForever())
-                .startNow()
-                .build();
-
-        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
-        scheduler.start();
-        scheduler.scheduleJob(job,trigger);
     }
 
-    /**
-     * 指定名称
-     * @param jobName
-     * @param groupName
-     * @throws Exception
-     */
-    public void executeJobWithSimpleTriggerByName(String jobName,String groupName) throws Exception{
+    private Trigger getTrigger(){
 
-        setJobName(jobName);
-        setGroupName(groupName);
+        TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger();
 
-        JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobName,groupName).build();
-        Trigger trigger = TriggerBuilder
-                .newTrigger()
-                .withIdentity(triggerName, groupName)
-                .startAt(startDatetime)
-//                .withSchedule(SimpleScheduleBuilder.simpleSchedule())
-//                .withIntervalInSeconds(5)
-//                .repeatForever())
-                .build();
+        if (startDatetime != null)
+            triggerBuilder.startAt(startDatetime);
+        else if (isStartNow)
+            triggerBuilder.startNow();
+        else
+            throw new RuntimeException("触发器未指定开始时间");
 
-        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
-        scheduler.start();
-        scheduler.scheduleJob(job,trigger);
+        TriggerKey triggerKey;
+        if (triggerName != null && !"".equals(triggerName)){
+            if (triggerGroupName != null && !"".equals(triggerGroupName))
+                triggerKey = new TriggerKey(triggerName,triggerGroupName);
+            else
+                triggerKey = new TriggerKey(triggerName);
+            triggerBuilder.withIdentity(triggerKey);
+        }
+
+        ScheduleBuilder ScheduleBuilder = getScheduleBuilder();
+        triggerBuilder.withSchedule(ScheduleBuilder);
+
+        Trigger trigger = triggerBuilder.build();
+
+        return trigger;
     }
 
-    /**
-     * 使用cron触发器执行
-     * @throws Exception
-     */
-    public void executeJobWithCronTrigger() throws Exception{
+    private JobDetail getJobDetail(){
 
-        JobDetail job = JobBuilder.newJob(jobClass).build();
+        if (jobClass == null)
+            throw new RuntimeException("jobClass未指定");
 
-        Trigger trigger = TriggerBuilder
-                .newTrigger()
-                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                .build();
+        JobBuilder jobBuilder = JobBuilder.newJob(jobClass);
+        JobKey jobKey;
+        if (jobName != null && !"".equals(jobName)){
+            if (jobGroupName != null && !"".equals(jobGroupName))
+                jobKey = new JobKey(jobName,jobGroupName);
+            else
+                jobKey = new JobKey(jobName);
+            jobBuilder.withIdentity(jobKey);
+        }
 
-        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
-        scheduler.start();
-        scheduler.scheduleJob(job, trigger);
+        JobDetail job = jobBuilder.build();
+
+        return job;
     }
 
-    /**
-     * 使用cron触发器 指定名称执行
-     * @param jobName
-     * @param groupName
-     * @throws Exception
-     */
-    public void executeJobWithCronTriggerByName(String jobName, String groupName) throws Exception{
+    private void SchedulerExecutor(JobDetail job,Trigger trigger){
+        if (scheduler==null)
+            instanceScheduler();
+        try {
+            scheduler.start();
+            scheduler.scheduleJob(job, trigger);
+        }catch (SchedulerException e){
+            e.printStackTrace();
+        }
+    }
 
-        setJobName(jobName);
-        setGroupName(groupName);
-
-        JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobName, groupName).build();
-
-        Trigger trigger = TriggerBuilder
-                .newTrigger()
-                .withIdentity(triggerName, groupName)
-                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                .build();
-
-        Scheduler scheduler = new StdSchedulerFactory().getScheduler();
-        scheduler.start();
-        scheduler.scheduleJob(job, trigger);
+    private void instanceScheduler(){
+        try {
+            if (scheduler==null)
+                this.scheduler = new StdSchedulerFactory().getScheduler();
+        }catch (SchedulerException e){
+            e.printStackTrace();
+        }
     }
 
     public String getJobName() {
@@ -160,12 +257,12 @@ public class SchedulerUtil {
         this.jobName = jobName;
     }
 
-    public String getGroupName() {
-        return groupName;
+    public String getJobGroupName() {
+        return jobGroupName;
     }
 
-    public void setGroupName(String groupName) {
-        this.groupName = groupName;
+    public void setJobGroupName(String jobGroupName) {
+        this.jobGroupName = jobGroupName;
     }
 
     public String getTriggerName() {
@@ -231,4 +328,41 @@ public class SchedulerUtil {
     public void setJobDataMap(JobDataMap jobDataMap) {
         this.jobDataMap = jobDataMap;
     }
+
+    public boolean isRepeatForever() {
+        return isRepeatForever;
+    }
+
+    public void setRepeatForever(boolean repeatForever) {
+        isRepeatForever = repeatForever;
+    }
+
+    public Integer getRepeatCount() {
+        return repeatCount;
+    }
+
+    public void setRepeatCount(Integer repeatCount) {
+        this.repeatCount = repeatCount;
+    }
+
+    public boolean isStartNow() {
+        return isStartNow;
+    }
+
+    public void setStartNow(boolean startNow) {
+        isStartNow = startNow;
+    }
+
+    public String getTriggerGroupName() {
+        return triggerGroupName;
+    }
+
+    public void setTriggerGroupName(String triggerGroupName) {
+        this.triggerGroupName = triggerGroupName;
+    }
+
+    public Scheduler getScheduler() {
+        return scheduler;
+    }
+
 }
