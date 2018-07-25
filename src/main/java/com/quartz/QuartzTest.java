@@ -30,24 +30,33 @@ public class QuartzTest {
         SchedulerUtil schedulerUtil = new SchedulerUtil();
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(new Date());
-        calendar.add(Calendar.SECOND,10);
+        System.out.println(calendar.getTime());
+//        calendar.add(Calendar.SECOND,-30);
+        calendar.add(Calendar.MINUTE,-2);
+        System.out.println(calendar.getTime());
         Date date = calendar.getTime();
         try {
             JobDataMap jobDataMap = new JobDataMap();
             schedulerUtil.setJobDataMap(jobDataMap);
             schedulerUtil.setJobClass(TestJob.class);
-            System.out.println(date);
+//            schedulerUtil.setHours(1);
+//            schedulerUtil.setMinutes(1);
+            schedulerUtil.setSeconds(30);
+
             schedulerUtil.executeJobWithSimpleTrigger(date);
         }catch (Exception e){
-            logger.error("任务调度异常",e);
+            e.printStackTrace();
         }
     }
 
     public static void simpleTest(){
         SchedulerUtil schedulerUtil = new SchedulerUtil();
         try {
-            schedulerUtil.setJobClass(TestJob.class);
-            schedulerUtil.executeJobWithRepeatForever(0,0,2);
+            for (int i=0; i<5; i++){
+                schedulerUtil.setJobClass(TestJob.class);
+                schedulerUtil.executeJobWithRepeatForever(0,0,2);
+            }
+            Thread.sleep(5000);
         }catch (Exception e){
             logger.error("任务调度异常",e);
         }
@@ -55,14 +64,27 @@ public class QuartzTest {
 
     public static void useJobNameStopTest(){
         SchedulerUtil schedulerUtil = new SchedulerUtil();
+        Scheduler scheduler = null;
+        schedulerUtil.setCronExpression("0/2 * * * * ? *");
+//        schedulerUtil.setTriggerName("triggerName1");
+//        schedulerUtil.setTriggerGroupName("triggerGroupName1");
         try {
-            schedulerUtil.setJobClass(TestJob.class);
-            schedulerUtil.setSeconds(2);
-            schedulerUtil.executeJobWithSimpleTriggerByName("jobName1","jobGroupName1");
-            Scheduler scheduler = schedulerUtil.getScheduler();
-            JobKey jobKey = new JobKey("jobName1", "jobGroupName1");
-            scheduler.interrupt(jobKey);
-            scheduler.deleteJob(jobKey);
+            for (int i=0;i<5;i++){
+                schedulerUtil.setJobClass(TestJob.class);
+                schedulerUtil.setSeconds(2);
+                schedulerUtil.executeJobWithSimpleTriggerByName("jobName"+i,"jobGroupName"+i);
+//                scheduler = schedulerUtil.getScheduler();
+            }
+//            Thread.sleep(5000);
+//            TriggerKey triggerKey = new TriggerKey("triggerName1", "triggerGroupName1");
+//            scheduler.pauseTrigger(triggerKey);// 停止触发器
+//            scheduler.unscheduleJob(triggerKey);// 移除触发器
+//            for (int i=0;i<5;i++){
+//                Thread.sleep(5000);
+//                JobKey jobKey = new JobKey("jobName"+i, "jobGroupName"+i);
+//                scheduler.interrupt(jobKey);
+//                scheduler.deleteJob(jobKey);
+//            }
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -82,25 +104,13 @@ public class QuartzTest {
         }
     }
 
-    public static void removeJob(String jobName, String jobGroupName,
-                                 String triggerName, String triggerGroupName) {
-        try {
-            SchedulerFactory gSchedulerFactory = new StdSchedulerFactory();
-            Scheduler sched = gSchedulerFactory.getScheduler();
-            TriggerKey triggerKey = new TriggerKey(triggerName, triggerGroupName);
-            JobKey jobKey = new JobKey(jobName, jobGroupName);
-            sched.pauseTrigger(triggerKey);// 停止触发器
-            sched.unscheduleJob(triggerKey);// 移除触发器
-            sched.interrupt(jobKey);
-            sched.deleteJob(jobKey);// 删除任务
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     public static void main(String[] args) {
+        test();
 //        useJobNameStopTest();
-        useTriggerNameStopTest();
+//        simpleTest();
+//        useJobNameStopTest();
+//        useTriggerNameStopTest();
     }
 
 }

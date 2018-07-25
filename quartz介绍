@@ -1,9 +1,18 @@
 1.Job 表示一个工作，要执行的具体内容。此接口中只有一个方法，如下：
     void execute(JobExecutionContext context)
 
-2.JobDetail 表示一个具体的可执行的调度程序，Job 是这个可执行程调度程序所要执行的内容，另外 JobDetail 还包含了这个任务调度的方案和策略。
-3.Trigger 代表一个调度参数的配置，什么时候去调。
-4.Scheduler 代表一个调度容器，一个调度容器中可以注册多个 JobDetail 和 Trigger。当 Trigger 与 JobDetail 组合，就可以被 Scheduler 容器调度了。
+Quartz大致可分为三个主要的核心：
+
+1、调度器Scheduler:是一个计划调度器容器，容器里面可以盛放众多的JobDetail和Trigger，当容器启动后，
+里面的每个JobDetail都会根据Trigger按部就班自动去执行.
+
+2、任务Job：要执行的具体内容。JobDetail:具体的可执行的调度程序，包含了这个任务调度的方案和策略。
+
+3、触发器Trigger：调度参数的配置，什么时候去执行调度。
+
+可以这么理解它的原理：调度器就相当于一个容器，装载着任务和触发器。任务和触发器又是绑定在一起的，
+然而一个任务可以对应多个触发器，但一个触发器却只能对应一个任务。当JobDetail和Trigger在scheduler容器上注册后，
+形成了装配好的任务作业（JobDetail和Trigger所组成的一对儿），就可以伴随容器启动而调度执行了
 
 
 Quartz的运行环境
@@ -11,6 +20,105 @@ Quartz 可以运行嵌入在另一个独立式应用程序。
 Quartz 可以在应用程序服务器(或 servlet 容器)内被实例化，并且参与 XA 事务。
 Quartz 可以作为一个独立的程序运行(其自己的 Java 虚拟机内)，可以通过 RMI 使用。
 Quartz 可以被实例化，作为独立的项目集群(负载平衡和故障转移功能)，用于作业的执行。
+
+
+misfire产生的条件是：到了该触发执行时上一个执行还未完成，且线程池中没有空闲线程可以使用
+（或有空闲线程可以使用但job设置为@DisallowConcurrentExecution）且过期时间已经超过misfireThreshold就认为是misfire了，错失触发了
+
+CronScheduleBuilder
+withMisfireHandlingInstructionFireAndProceed（默认）
+——以当前时间为触发频率立刻触发一次执行
+——然后按照Cron频率依次执行
+withMisfireHandlingInstructionDoNothing
+——不触发立即执行
+——等待下次Cron触发频率到达时刻开始按照Cron频率依次执行
+withMisfireHandlingInstructionIgnoreMisfires
+——以错过的第一个频率时间立刻开始执行
+——重做错过的所有频率周期后
+——当下一次触发频率发生时间大于当前时间后，再按照正常的Cron频率依次执行
+
+SimpleScheduleBuilder
+withMisfireHandlingInstructionFireNow
+——以当前时间为触发频率立即触发执行
+——执行至FinalTIme的剩余周期次数
+——以调度或恢复调度的时刻为基准的周期频率，FinalTime根据剩余次数和当前时间计算得到
+——调整后的FinalTime会略大于根据starttime计算的到的FinalTime值
+
+withMisfireHandlingInstructionIgnoreMisfires
+——以错过的第一个频率时间立刻开始执行
+——重做错过的所有频率周期
+——当下一次触发频率发生时间大于当前时间以后，按照Interval的依次执行剩下的频率
+——共执行RepeatCount+1次
+
+withMisfireHandlingInstructionNextWithExistingCount
+——不触发立即执行
+——等待下次触发频率周期时刻，执行至FinalTime的剩余周期次数
+——以startTime为基准计算周期频率，并得到FinalTime
+——即使中间出现pause，resume以后保持FinalTime时间不变
+
+withMisfireHandlingInstructionNextWithRemainingCount
+——不触发立即执行
+——等待下次触发频率周期时刻，执行至FinalTime的剩余周期次数
+——以startTime为基准计算周期频率，并得到FinalTime
+——即使中间出现pause，resume以后保持FinalTime时间不变
+
+withMisfireHandlingInstructionNowWithExistingCount（默认）
+——以当前时间为触发频率立即触发执行
+——执行至FinalTIme的剩余周期次数
+——以调度或恢复调度的时刻为基准的周期频率，FinalTime根据剩余次数和当前时间计算得到
+——调整后的FinalTime会略大于根据starttime计算的到的FinalTime值
+
+withMisfireHandlingInstructionNowWithRemainingCount
+——以当前时间为触发频率立即触发执行
+——执行至FinalTIme的剩余周期次数
+——以调度或恢复调度的时刻为基准的周期频率，FinalTime根据剩余次数和当前时间计算得到
+——调整后的FinalTime会略大于根据starttime计算的到的FinalTime值
+
+MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT
+——此指令导致trigger忘记原始设置的starttime和repeat-count
+——触发器的repeat-count将被设置为剩余的次数
+——这样会导致后面无法获得原始设定的starttime和repeat-count值
+
+符号说明
+通配符*表示所有值。
+
+例如:在分的字段上设置 "*",表示每一分钟都会触发。
+
+通配符?表示不指定值。使用的场景为不需要关心当前设置这个字段的值。
+
+例如:要在每月的10号触发一个操作，但不关心是周几，所以需要周位置的那个字段设置为"?" 具体设置为 0 0 0 10 * ?
+
+通配符-表示区间。
+
+例如在小时上设置 "10-12",表示 10,11,12点都会触发。
+
+通配符,表示指定多个值。
+
+例如在周字段上设置 "MON,WED,FRI" 表示周一，周三和周五触发
+
+通配符/用于递增触发。如在秒上面设置"5/15" 表示从5秒开始，每增15秒触发(5,20,35,50)。
+在月字段上设置'1/3'所示每月1号开始，每隔三天触发一次。
+
+通配符L表示最后的意思。
+
+例如在日字段设置上，表示当月的最后一天(依据当前月份，如果是二月还会依据是否是润年[leap]), 在周字段上表示星期六，
+相当于"7"或"SAT"。如果在"L"前加上数字，则表示该数据的最后一个。例如在周字段上设置"6L"这样的格式，则表示“本月最后一个星期五"
+
+通配符W表示离指定日期的最近那个工作日(周一至周五)。
+
+例如在日字段上设置"15W"，表示离每月15号最近的那个工作日触发。如果15号正好是周六，则找最近的周五(14号)触发,
+如果15号是周未，则找最近的下周一(16号)触发。如果15号正好在工作日(周一至周五)，则就在该天触发。如果指定格式为 "1W",
+它则表示每月1号往后最近的工作日触发。如果1号正是周六，则将在3号下周一触发。(注，"W"前只能设置具体的数字,不允许区间"-")。
+
+小提示：'L'和 'W'可以一组合使用。如果在日字段上设置"LW",则表示在本月的最后一个工作日触发；周字段的设置，
+若使用英文字母是不区分大小写的，即MON与mon相同。
+
+通配符#表示每月的第几个周几。
+
+例如在周字段上设置"6#3"表示在每月的第三个周六。注意如果指定"#5"，正好第五周没有周六，
+则不会触发该配置(用在母亲节和父亲节再合适不过了)。
+
+注：表中月份一行的JAN-DEC，是指一月到十二月的英文缩写；星期一行的SUN-SAT，是指星期天到星期六的英文缩写。
 
 
 使用表达式的案例

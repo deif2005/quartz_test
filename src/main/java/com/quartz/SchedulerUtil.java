@@ -43,6 +43,8 @@ public class SchedulerUtil {
 
     private Scheduler scheduler;
 
+    private Trigger shareTrigger;
+
     /**
      * 指定时间执行一次任务
      * @param startDatetime
@@ -109,25 +111,35 @@ public class SchedulerUtil {
         CronScheduleBuilder cronScheduleBuilder = null;
         if (!"".equals(cronExpression))
             cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression);
-        if (cronScheduleBuilder != null)
+        if (cronScheduleBuilder != null) {
+//            cronScheduleBuilder.withMisfireHandlingInstructionDoNothing();
             return cronScheduleBuilder;
+        }
+
+        if (hours == 0 & minutes == 0 & seconds == 0)
+            throw new RuntimeException("未指定触发器规则");
 
         SimpleScheduleBuilder simpleScheduleBuilder = SimpleScheduleBuilder.simpleSchedule();
+        if (isRepeatForever)
+            simpleScheduleBuilder.repeatForever();
+        if (repeatCount > 0)
+            simpleScheduleBuilder.withRepeatCount(repeatCount);
         if (hours != null && hours > 0)
             simpleScheduleBuilder.withIntervalInHours(hours);
         if (minutes != null && minutes > 0)
             simpleScheduleBuilder.withIntervalInMinutes(minutes);
         if (seconds != null && seconds >0)
             simpleScheduleBuilder.withIntervalInSeconds(seconds);
-        if (isRepeatForever)
-            simpleScheduleBuilder.repeatForever();
-        if (repeatCount > 0)
-            simpleScheduleBuilder.withRepeatCount(repeatCount);
+        simpleScheduleBuilder.withMisfireHandlingInstructionNextWithRemainingCount();
         return simpleScheduleBuilder;
 
     }
 
     private Trigger getTrigger(){
+
+        if (shareTrigger != null && triggerName.equals(shareTrigger.getKey().getName())
+                && triggerGroupName.equals(shareTrigger.getKey().getGroup()))
+            return shareTrigger;
 
         TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder.newTrigger();
 
@@ -147,12 +159,12 @@ public class SchedulerUtil {
             triggerBuilder.withIdentity(triggerKey);
         }
 
-        ScheduleBuilder ScheduleBuilder = getScheduleBuilder();
-        triggerBuilder.withSchedule(ScheduleBuilder);
+        ScheduleBuilder scheduleBuilder = getScheduleBuilder();
+        triggerBuilder.withSchedule(scheduleBuilder);
 
-        Trigger trigger = triggerBuilder.build();
+        shareTrigger = triggerBuilder.build();
 
-        return trigger;
+        return shareTrigger;
     }
 
     private JobDetail getJobDetail(){
